@@ -1,38 +1,49 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
 
-<title>WebRTC 画面共有 + 座標取得</title>
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>P2P WebRTC 画面共有 + タップ座標</title>
+
+<script src="https://unpkg.com/peerjs/dist/peerjs.min.js"></script>
+<script src="https://unpkg.com/qrcode/build/qrcode.min.js"></script>
 
 <style>
 
+* {
+    box-sizing: border-box;
+}
+
 body {
     font-family: sans-serif;
-    max-width: 800px;
+    max-width: 900px;
     margin: 20px auto;
-    padding: 0 10px;
-    line-height: 1.6;
+    padding: 0 12px;
+    line-height: 1.5;
 }
 
 .box {
     border: 1px solid #ccc;
     padding: 15px;
     margin-bottom: 15px;
-    border-radius: 5px;
-    background: #f9f9f9;
+    border-radius: 8px;
+    background: #f8f8f8;
 }
 
 button {
-    padding: 8px 16px;
-    font-size: 14px;
+    padding: 10px 18px;
+    font-size: 15px;
     cursor: pointer;
     background: #007bff;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 5px;
 }
 
 button:hover {
@@ -40,24 +51,10 @@ button:hover {
 }
 
 input {
-    padding: 8px;
-    font-size: 14px;
-    width: 250px;
-    margin-right: 10px;
-}
-
-video {
-    width: 100%;
-    max-width: 780px;
-    margin-top: 15px;
-    border: 2px solid #333;
-    background: #000;
-
-    /*
-       タップ位置を正確に取るため
-    */
-    display: block;
-    cursor: crosshair;
+    padding: 10px;
+    font-size: 15px;
+    width: 260px;
+    margin-right: 8px;
 }
 
 .status {
@@ -68,98 +65,157 @@ video {
 .qr-container {
     margin-top: 15px;
     text-align: center;
-    background: #fff;
-    padding: 10px;
+    background: white;
+    padding: 12px;
     display: inline-block;
-    border: 1px dashed #bbb;
+    border: 1px dashed #aaa;
+}
+
+#remote-video {
+    width: 100%;
+    max-width: 850px;
+
+    display: block;
+
+    margin-top: 10px;
+
+    background: #000;
+
+    border: 3px solid #333;
+
+    cursor: crosshair;
+
+    /*
+     * スマホでタップしたとき
+     * ブラウザのスクロールなどを防ぐ
+     */
+    touch-action: none;
 }
 
 #coordinate {
-    font-size: 22px;
+    font-size: 26px;
+    font-weight: bold;
+    padding: 10px;
+}
+
+#connection-status {
     font-weight: bold;
 }
 
 #log {
     background: #111;
     color: #00ff00;
-    padding: 10px;
-    min-height: 100px;
+
+    padding: 12px;
+
+    min-height: 150px;
+
     white-space: pre-wrap;
+
+    overflow-y: auto;
+
+    font-family: monospace;
+}
+
+.small {
+    color: #666;
+    font-size: 14px;
 }
 
 </style>
 
-<script src="https://unpkg.com/peerjs/dist/peerjs.min.js"></script>
-<script src="https://unpkg.com/qrcode/build/qrcode.min.js"></script>
-
 </head>
+
 
 <body>
 
-<h1>WebRTC 画面共有</h1>
+<h1>
+WebRTC 画面共有 + タップ座標
+</h1>
 
 
-<!-- ============================== -->
-<!-- 自分の情報 -->
-<!-- ============================== -->
+<!-- ================================================= -->
+<!-- 自分のID -->
+<!-- ================================================= -->
 
 <div class="box">
 
-<h3>1. あなたの情報</h3>
+<h3>1. PCの情報</h3>
 
 <p>
-あなたのID:
-<span id="my-id" class="status">
+Peer ID：
+<span
+    id="my-id"
+    class="status"
+>
 接続中...
 </span>
 </p>
 
 <p>
-スマホなどで下のQRコードを読み込んでください。
+DataConnection：
+<span
+    id="connection-status"
+>
+未接続
+</span>
+</p>
+
+<p>
+Python：
+<span
+    id="python-status"
+>
+確認中...
+</span>
+</p>
+
+<p>
+スマホで下のQRコードを読み取ってください。
 </p>
 
 <div class="qr-container">
+
 <canvas id="qrcode-canvas"></canvas>
-</div>
 
 </div>
 
+</div>
 
-<!-- ============================== -->
-<!-- 手動接続 -->
-<!-- ============================== -->
+
+<!-- ================================================= -->
+<!-- 手動画面共有 -->
+<!-- ================================================= -->
 
 <div class="box">
 
-<h3>2. 手動接続</h3>
+<h3>2. 手動画面共有</h3>
 
 <input
     type="text"
     id="target-id"
-    placeholder="相手のID"
+    placeholder="スマホ側のPeer ID"
 >
 
-<button onclick="
-startScreenShare(
-    document.getElementById('target-id').value.trim()
-)
-">
+<button
+    onclick="startScreenShare()"
+>
 画面共有開始
 </button>
 
 </div>
 
 
-<!-- ============================== -->
+<!-- ================================================= -->
 <!-- 受信画面 -->
-<!-- ============================== -->
+<!-- ================================================= -->
 
 <div class="box">
 
-<h3>3. 相手の画面</h3>
+<h3>3. PC画面</h3>
 
 <p>
-この画面をタップすると、PCに座標が送信されます。
+スマホ側に表示されたPC画面をタップしてください。
 </p>
 
 <video
@@ -172,29 +228,37 @@ startScreenShare(
 </div>
 
 
-<!-- ============================== -->
+<!-- ================================================= -->
 <!-- 座標 -->
-<!-- ============================== -->
+<!-- ================================================= -->
 
 <div class="box">
 
-<h3>取得した座標</h3>
+<h3>4. タップ座標</h3>
 
 <div id="coordinate">
-X = -
+
+X = -<br>
 Y = -
-</div>
 
 </div>
 
+<p class="small">
 
-<!-- ============================== -->
+座標は共有映像の元解像度を基準にしています。
+
+</p>
+
+</div>
+
+
+<!-- ================================================= -->
 <!-- ログ -->
-<!-- ============================== -->
+<!-- ================================================= -->
 
 <div class="box">
 
-<h3>ログ</h3>
+<h3>5. ログ</h3>
 
 <div id="log"></div>
 
@@ -203,439 +267,339 @@ Y = -
 
 <script>
 
+
+/*
+=========================================================
+ PeerJS
+=========================================================
+*/
+
 const peer = new Peer();
+
 
 let localStream = null;
 
 
-/* ==========================================
-   ログ
-========================================== */
+/*
+ * PC側のDataConnection
+ *
+ * スマホ → PC
+ */
+let dataConnection = null;
 
-function log(text) {
 
-    const element = document.getElementById("log");
+/*
+=========================================================
+ ログ
+=========================================================
+*/
+
+function log(message) {
+
+    const element =
+        document.getElementById("log");
 
     const time =
         new Date().toLocaleTimeString();
 
     element.textContent +=
-        `[${time}] ${text}\n`;
+        `[${time}] ${message}\n`;
 
     element.scrollTop =
         element.scrollHeight;
 }
 
 
-/* ==========================================
-   PeerJS 接続
-========================================== */
+/*
+=========================================================
+ Peer ID取得
+=========================================================
+*/
 
 peer.on("open", (id) => {
 
-    document.getElementById("my-id").innerText = id;
+    document.getElementById(
+        "my-id"
+    ).textContent = id;
+
+
+    log(
+        "Peer接続完了"
+    );
+
 
     /*
-       QRコード用URL
-    */
+     * URLにPCのPeer IDを入れる
+     *
+     * 例：
+     *
+     * https://imorun.github.io/P2P_WebRTC_TEST/?target=xxxxx
+     */
 
-    const currentUrl =
-        new URL(window.location.href);
+    const url =
+        new URL(
+            window.location.href
+        );
 
-    currentUrl.searchParams.set(
+    url.searchParams.set(
         "target",
         id
     );
 
-    const autoConnectUrl =
-        currentUrl.toString();
 
-    const canvas =
-        document.getElementById(
-            "qrcode-canvas"
-        );
+    /*
+     * QRコード
+     */
 
     QRCode.toCanvas(
-        canvas,
-        autoConnectUrl,
+
+        document.getElementById(
+            "qrcode-canvas"
+        ),
+
+        url.toString(),
+
         {
-            width: 180
+            width: 220,
+            margin: 2
         },
+
         (error) => {
 
             if (error) {
+
                 console.error(
-                    "QRコード生成エラー:",
+                    "QRコードエラー",
                     error
                 );
+
             }
 
         }
+
     );
-
-
-    /*
-       QRコードからアクセスされた場合
-    */
-
-    const urlParams =
-        new URLSearchParams(
-            window.location.search
-        );
-
-    const autoTargetId =
-        urlParams.get("target");
-
-    if (autoTargetId) {
-
-        log(
-            "QRコード経由のアクセスを検出"
-        );
-
-        /*
-           スマホ側では画面共有しない
-           PC側でのみ画面共有する
-        */
-
-    }
 
 });
 
 
-/* ==========================================
-   画面共有
-========================================== */
+/*
+=========================================================
+ Peerエラー
+=========================================================
+*/
 
-async function startScreenShare(targetId) {
+peer.on("error", (error) => {
 
-    if (!targetId) {
+    console.error(
+        "PeerJS error:",
+        error
+    );
 
-        alert(
-            "ターゲットIDがありません"
-        );
+    log(
+        "PeerJSエラー: " +
+        error.type
+    );
 
-        return;
-    }
-
-
-    try {
-
-        localStream =
-            await navigator.mediaDevices
-                .getDisplayMedia({
-
-                    video: true,
-                    audio: true
-
-                });
+});
 
 
-        const call =
-            peer.call(
-                targetId,
-                localStream
-            );
+/*
+=========================================================
+ スマホからDataConnectionが来る
+=========================================================
+*/
+
+peer.on("connection", (conn) => {
+
+    log(
+        "DataConnection接続要求"
+    );
 
 
-        log(
-            "画面共有を開始しました"
-        );
+    dataConnection = conn;
 
 
-        const videoTrack =
-            localStream.getVideoTracks()[0];
+    setupDataConnection(
+        conn
+    );
+
+});
 
 
-        videoTrack.onended = () => {
+/*
+=========================================================
+ DataConnection設定
+=========================================================
+*/
 
-            stopLocalStream();
+function setupDataConnection(conn) {
 
-        };
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert(
-            "画面共有を開始できませんでした"
-        );
-
-    }
-
-}
+    dataConnection = conn;
 
 
-/* ==========================================
-   画面受信
-========================================== */
+    conn.on("open", () => {
 
-peer.on("call", (call) => {
+        document.getElementById(
+            "connection-status"
+        ).textContent =
+            "接続済み";
 
-    call.answer();
-
-
-    call.on("stream", (remoteStream) => {
-
-        const video =
-            document.getElementById(
-                "remote-video"
-            );
-
-        video.srcObject =
-            remoteStream;
+        document.getElementById(
+            "connection-status"
+        ).style.color =
+            "#28a745";
 
 
         log(
-            "画面を受信しました"
+            "スマホとのDataConnection接続完了"
+        );
+
+
+        /*
+         * 接続確認
+         */
+
+        conn.send({
+            type: "hello"
+        });
+
+    });
+
+
+    /*
+     * スマホからデータを受信
+     */
+
+    conn.on("data", (data) => {
+
+        if (!data) {
+            return;
+        }
+
+
+        /*
+         * タップ座標
+         */
+
+        if (
+            data.type === "tap"
+        ) {
+
+            receiveTap(
+                data
+            );
+
+        }
+
+
+        /*
+         * 接続確認
+         */
+
+        else if (
+            data.type === "hello"
+        ) {
+
+            log(
+                "スマホから接続確認を受信"
+            );
+
+        }
+
+    });
+
+
+    conn.on("close", () => {
+
+        document.getElementById(
+            "connection-status"
+        ).textContent =
+            "切断";
+
+        document.getElementById(
+            "connection-status"
+        ).style.color =
+            "#dc3545";
+
+
+        log(
+            "DataConnection切断"
         );
 
     });
 
-});
+
+    conn.on("error", (error) => {
+
+        console.error(
+            "DataConnection error:",
+            error
+        );
+
+        log(
+            "DataConnectionエラー"
+        );
+
+    });
+
+}
 
 
-/* ==========================================
-   座標取得
-========================================== */
+/*
+=========================================================
+ タップ座標受信
+=========================================================
+*/
 
-const remoteVideo =
+function receiveTap(data) {
+
+    const x =
+        Number(data.x);
+
+    const y =
+        Number(data.y);
+
+
+    /*
+     * 画面表示
+     */
+
     document.getElementById(
-        "remote-video"
+        "coordinate"
+    ).innerHTML =
+        `X = ${x}<br>Y = ${y}`;
+
+
+    log(
+        `スマホタップ → X=${x}, Y=${y}`
     );
 
 
-remoteVideo.addEventListener(
-    "click",
-    async function(event) {
+    /*
+     * Pythonへ送信
+     */
 
-        /*
-           動画の表示領域
-        */
+    sendToPython(
+        x,
+        y
+    );
 
-        const rect =
-            remoteVideo.getBoundingClientRect();
+}
 
 
-        /*
-           動画内のクリック位置
-        */
+/*
+=========================================================
+ Pythonへ座標送信
+=========================================================
+*/
 
-        const displayX =
-            event.clientX -
-            rect.left;
+async function sendToPython(x, y) {
 
-        const displayY =
-            event.clientY -
-            rect.top;
+    try {
 
-
-        /*
-           実際の映像サイズ
-        */
-
-        const videoWidth =
-            remoteVideo.videoWidth;
-
-        const videoHeight =
-            remoteVideo.videoHeight;
-
-
-        if (
-            !videoWidth ||
-            !videoHeight
-        ) {
-
-            return;
-
-        }
-
-
-        /*
-           表示サイズ → 元画面サイズ
-        */
-
-        const x =
-            Math.round(
-                displayX *
-                videoWidth /
-                rect.width
-            );
-
-
-        const y =
-            Math.round(
-                displayY *
-                videoHeight /
-                rect.height
-            );
-
-
-        /*
-           画面に表示
-        */
-
-        document.getElementById(
-            "coordinate"
-        ).textContent =
-            `X = ${x}  Y = ${y}`;
-
-
-        log(
-            `クリック: X=${x}, Y=${y}`
-        );
-
-
-        /*
-           Pythonへ送信
-        */
-
-        try {
-
-            const response =
-                await fetch(
-                    "/click",
-                    {
-
-                        method: "POST",
-
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body:
-                            JSON.stringify({
-                                x: x,
-                                y: y
-                            })
-
-                    }
-                );
-
-
-            const result =
-                await response.json();
-
-
-            if (!result.success) {
-
-                log(
-                    "Pythonへの送信に失敗"
-                );
-
-            }
-
-        } catch (error) {
-
-            console.error(error);
-
-            log(
-                "Pythonとの通信エラー"
-            );
-
-        }
-
-    }
-);
-
-
-/* ==========================================
-   タッチ対応
-========================================== */
-
-remoteVideo.addEventListener(
-    "touchend",
-    async function(event) {
-
-        /*
-           スクロール防止
-        */
-
-        event.preventDefault();
-
-
-        if (
-            !event.changedTouches ||
-            !event.changedTouches.length
-        ) {
-
-            return;
-
-        }
-
-
-        const touch =
-            event.changedTouches[0];
-
-
-        const rect =
-            remoteVideo.getBoundingClientRect();
-
-
-        const displayX =
-            touch.clientX -
-            rect.left;
-
-
-        const displayY =
-            touch.clientY -
-            rect.top;
-
-
-        const videoWidth =
-            remoteVideo.videoWidth;
-
-
-        const videoHeight =
-            remoteVideo.videoHeight;
-
-
-        if (
-            !videoWidth ||
-            !videoHeight
-        ) {
-
-            return;
-
-        }
-
-
-        const x =
-            Math.round(
-                displayX *
-                videoWidth /
-                rect.width
-            );
-
-
-        const y =
-            Math.round(
-                displayY *
-                videoHeight /
-                rect.height
-            );
-
-
-        document.getElementById(
-            "coordinate"
-        ).textContent =
-            `X = ${x}  Y = ${y}`;
-
-
-        log(
-            `タップ: X=${x}, Y=${y}`
-        );
-
-
-        /*
-           Pythonへ送信
-        */
-
-        try {
-
+        const response =
             await fetch(
-                "/click",
+                "http://127.0.0.1:5000/click",
                 {
 
                     method: "POST",
@@ -647,34 +611,582 @@ remoteVideo.addEventListener(
 
                     body:
                         JSON.stringify({
+
                             x: x,
-                            y: y
+                            y: y,
+
+                            timestamp:
+                                Date.now()
+
                         })
 
-                }
+                    }
+                );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "HTTP " +
+                response.status
             );
-
-        } catch (error) {
-
-            console.error(error);
 
         }
 
-    },
-    {
-        passive: false
+
+        const result =
+            await response.json();
+
+
+        if (result.success) {
+
+            document.getElementById(
+                "python-status"
+            ).textContent =
+                "接続済み";
+
+            document.getElementById(
+                "python-status"
+            ).style.color =
+                "#28a745";
+
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Python送信エラー:",
+            error
+        );
+
+
+        document.getElementById(
+            "python-status"
+        ).textContent =
+            "接続できません";
+
+
+        document.getElementById(
+            "python-status"
+        ).style.color =
+            "#dc3545";
+
+
+        log(
+            "Pythonへ送信できません"
+        );
+
     }
-);
+
+}
 
 
-/* ==========================================
-   停止
-========================================== */
+/*
+=========================================================
+ Pythonサーバー確認
+=========================================================
+*/
+
+async function checkPython() {
+
+    try {
+
+        const response =
+            await fetch(
+                "http://127.0.0.1:5000/",
+                {
+                    method: "GET"
+                }
+            );
+
+
+        if (response.ok) {
+
+            document.getElementById(
+                "python-status"
+            ).textContent =
+                "起動中";
+
+            document.getElementById(
+                "python-status"
+            ).style.color =
+                "#28a745";
+
+        }
+
+    } catch (error) {
+
+        document.getElementById(
+            "python-status"
+        ).textContent =
+            "未起動";
+
+        document.getElementById(
+            "python-status"
+        ).style.color =
+            "#dc3545";
+
+    }
+
+}
+
+
+checkPython();
+
+
+/*
+=========================================================
+ 画面共有開始
+=========================================================
+*/
+
+async function startScreenShare() {
+
+    const targetId =
+        document
+            .getElementById(
+                "target-id"
+            )
+            .value
+            .trim();
+
+
+    if (!targetId) {
+
+        alert(
+            "相手のPeer IDを入力してください"
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        /*
+         * PC画面取得
+         */
+
+        localStream =
+            await navigator
+                .mediaDevices
+                .getDisplayMedia({
+
+                    video: true,
+
+                    audio: true
+
+                });
+
+
+        /*
+         * PeerJS MediaConnection
+         */
+
+        const call =
+            peer.call(
+                targetId,
+                localStream
+            );
+
+
+        log(
+            "画面共有開始"
+        );
+
+
+        /*
+         * 画面共有終了
+         */
+
+        const track =
+            localStream
+                .getVideoTracks()[0];
+
+
+        track.onended = () => {
+
+            stopLocalStream();
+
+        };
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+
+        log(
+            "画面共有開始失敗"
+        );
+
+
+        alert(
+            "画面共有を開始できませんでした"
+        );
+
+    }
+
+}
+
+
+/*
+=========================================================
+ 相手から画面共有が来る
+=========================================================
+*/
+
+peer.on("call", (call) => {
+
+    /*
+     * 今回はスマホ側から
+     * 画面共有する用途ではないので
+     * 空の応答
+     */
+
+    call.answer();
+
+
+    call.on(
+        "stream",
+        (remoteStream) => {
+
+            const video =
+                document.getElementById(
+                    "remote-video"
+                );
+
+
+            video.srcObject =
+                remoteStream;
+
+
+            log(
+                "画面を受信しました"
+            );
+
+        }
+    );
+
+});
+
+
+/*
+=========================================================
+ スマホ側
+=========================================================
+*/
+
+const urlParams =
+    new URLSearchParams(
+        window.location.search
+    );
+
+
+const targetId =
+    urlParams.get(
+        "target"
+    );
+
+
+/*
+ * QRコードからアクセスされた場合
+ */
+
+if (targetId) {
+
+    peer.on("open", () => {
+
+        log(
+            "QRコードのPC Peer ID: " +
+            targetId
+        );
+
+
+        /*
+         * PCへDataConnection接続
+         */
+
+        const conn =
+            peer.connect(
+                targetId,
+                {
+                    reliable: true
+                }
+            );
+
+
+        setupDataConnection(
+            conn
+        );
+
+    });
+
+}
+
+
+/*
+=========================================================
+ 動画の座標計算
+=========================================================
+*/
+
+function getVideoCoordinates(
+    clientX,
+    clientY
+) {
+
+    const video =
+        document.getElementById(
+            "remote-video"
+        );
+
+
+    const rect =
+        video.getBoundingClientRect();
+
+
+    /*
+     * 動画表示領域内の座標
+     */
+
+    let displayX =
+        clientX -
+        rect.left;
+
+
+    let displayY =
+        clientY -
+        rect.top;
+
+
+    /*
+     * 範囲外なら無視
+     */
+
+    if (
+        displayX < 0 ||
+        displayY < 0 ||
+        displayX > rect.width ||
+        displayY > rect.height
+    ) {
+
+        return null;
+
+    }
+
+
+    /*
+     * 元映像のサイズ
+     */
+
+    const videoWidth =
+        video.videoWidth;
+
+    const videoHeight =
+        video.videoHeight;
+
+
+    if (
+        !videoWidth ||
+        !videoHeight
+    ) {
+
+        return null;
+
+    }
+
+
+    /*
+     * 表示座標
+     * ↓
+     * 元映像座標
+     */
+
+    const x =
+        Math.round(
+            displayX *
+            videoWidth /
+            rect.width
+        );
+
+
+    const y =
+        Math.round(
+            displayY *
+            videoHeight /
+            rect.height
+        );
+
+
+    return {
+        x: x,
+        y: y
+    };
+
+}
+
+
+/*
+=========================================================
+ タップ送信
+=========================================================
+*/
+
+function sendTap(
+    clientX,
+    clientY
+) {
+
+    const position =
+        getVideoCoordinates(
+            clientX,
+            clientY
+        );
+
+
+    if (!position) {
+
+        return;
+
+    }
+
+
+    /*
+     * DataConnectionがない
+     */
+
+    if (
+        !dataConnection ||
+        !dataConnection.open
+    ) {
+
+        log(
+            "DataConnection未接続"
+        );
+
+        return;
+
+    }
+
+
+    /*
+     * スマホ → PC
+     */
+
+    dataConnection.send({
+
+        type: "tap",
+
+        x: position.x,
+
+        y: position.y,
+
+        timestamp:
+            Date.now()
+
+    });
+
+
+    /*
+     * スマホ側にも表示
+     */
+
+    document.getElementById(
+        "coordinate"
+    ).innerHTML =
+        `X = ${position.x}<br>Y = ${position.y}`;
+
+
+    log(
+        `タップ送信: X=${position.x}, Y=${position.y}`
+    );
+
+}
+
+
+/*
+=========================================================
+ PCクリック
+=========================================================
+*/
+
+document
+    .getElementById(
+        "remote-video"
+    )
+    .addEventListener(
+        "click",
+        (event) => {
+
+            sendTap(
+                event.clientX,
+                event.clientY
+            );
+
+        }
+    );
+
+
+/*
+=========================================================
+ スマホタップ
+=========================================================
+*/
+
+document
+    .getElementById(
+        "remote-video"
+    )
+    .addEventListener(
+        "touchend",
+        (event) => {
+
+            event.preventDefault();
+
+
+            if (
+                !event.changedTouches ||
+                !event.changedTouches.length
+            ) {
+
+                return;
+
+            }
+
+
+            const touch =
+                event.changedTouches[0];
+
+
+            sendTap(
+                touch.clientX,
+                touch.clientY
+            );
+
+        },
+        {
+            passive: false
+        }
+    );
+
+
+/*
+=========================================================
+ 画面共有停止
+=========================================================
+*/
 
 function stopLocalStream() {
 
     if (!localStream) {
+
         return;
+
     }
 
 
@@ -689,7 +1201,7 @@ function stopLocalStream() {
 
 
     log(
-        "画面共有を終了しました"
+        "画面共有終了"
     );
 
 }
@@ -697,4 +1209,5 @@ function stopLocalStream() {
 </script>
 
 </body>
+
 </html>
