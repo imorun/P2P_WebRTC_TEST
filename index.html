@@ -11,9 +11,8 @@
 
 <title>P2P WebRTC 画面共有 + タップ座標</title>
 
-<script src="https://unpkg.com/peerjs/dist/peerjs.min.js"></script>
-<script src="https://unpkg.com/qrcode/build/qrcode.min.js"></script>
-
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 
 * {
@@ -175,9 +174,7 @@ Python：
 </p>
 
 <div class="qr-container">
-
-<canvas id="qrcode-canvas"></canvas>
-
+    <div id="qrcode"></div>
 </div>
 
 </div>
@@ -322,65 +319,32 @@ peer.on("open", (id) => {
         "my-id"
     ).textContent = id;
 
-
-    log(
-        "Peer接続完了"
-    );
-
-
-    /*
-     * URLにPCのPeer IDを入れる
-     *
-     * 例：
-     *
-     * https://imorun.github.io/P2P_WebRTC_TEST/?target=xxxxx
-     */
+    log("Peer接続完了");
 
     const url =
-        new URL(
-            window.location.href
-        );
+        new URL(window.location.href);
 
     url.searchParams.set(
         "target",
         id
     );
 
+    const qrElement =
+        document.getElementById("qrcode");
 
-    /*
-     * QRコード
-     */
+    qrElement.innerHTML = "";
 
-    QRCode.toCanvas(
-
-        document.getElementById(
-            "qrcode-canvas"
-        ),
-
-        url.toString(),
-
+    new QRCode(
+        qrElement,
         {
+            text: url.toString(),
             width: 220,
-            margin: 2
-        },
-
-        (error) => {
-
-            if (error) {
-
-                console.error(
-                    "QRコードエラー",
-                    error
-                );
-
-            }
-
+            height: 220,
+            correctLevel: QRCode.CorrectLevel.M
         }
-
     );
 
 });
-
 
 /*
 =========================================================
