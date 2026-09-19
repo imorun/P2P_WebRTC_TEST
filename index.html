@@ -1,19 +1,24 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      content="width=device-width,
+               initial-scale=1.0,
+               maximum-scale=1.0,
+               user-scalable=no">
 
-<title>P2P WebRTC Remote Control</title>
+<title>P2P Remote Control</title>
 
-<!-- PeerJS -->
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
-<!-- QRCode.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <style>
+
 * {
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
@@ -21,305 +26,395 @@
 
 html,
 body {
+
     margin: 0;
     padding: 0;
+
     width: 100%;
     height: 100%;
+
     background: #111;
     color: white;
-    font-family: Arial, "Yu Gothic", "Meiryo", sans-serif;
+
+    font-family:
+        Arial,
+        "Yu Gothic",
+        "Meiryo",
+        sans-serif;
+
     overflow: hidden;
 }
 
-body {
-    display: flex;
-    flex-direction: column;
+button {
+
+    font-family: inherit;
+
+    cursor: pointer;
+
+    user-select: none;
+
+    touch-action: manipulation;
 }
 
-button {
-    font-family: inherit;
-    cursor: pointer;
-    user-select: none;
-}
 
 /* =========================
    上部
 ========================= */
 
 #topBar {
+
     height: 55px;
-    min-height: 55px;
+
     background: #222;
+
     display: flex;
+
     align-items: center;
-    gap: 8px;
+
+    gap: 7px;
+
     padding: 7px;
+
     border-bottom: 1px solid #444;
+
     z-index: 100;
 }
 
 #topBar button {
-    height: 40px;
-    padding: 0 14px;
-    border: 0;
-    border-radius: 7px;
-    background: #444;
-    color: white;
-    font-size: 14px;
-}
 
-#topBar button:hover {
-    background: #555;
+    height: 40px;
+
+    padding: 0 12px;
+
+    border: none;
+
+    border-radius: 7px;
+
+    background: #444;
+
+    color: white;
+
+    font-size: 13px;
 }
 
 #topBar button:active {
-    transform: scale(0.96);
+
+    transform: scale(0.95);
 }
 
 #status {
+
     margin-left: auto;
-    font-size: 13px;
+
+    font-size: 12px;
+
     color: #aaa;
+
     white-space: nowrap;
 }
+
 
 /* =========================
    メイン
 ========================= */
 
 #main {
-    flex: 1;
-    min-height: 0;
+
+    width: 100%;
+    height: calc(100% - 55px);
+
     display: flex;
-    position: relative;
 }
 
+
 /* =========================
-   左側
+   左
 ========================= */
 
 #leftPanel {
+
     width: 260px;
+
     min-width: 260px;
+
     background: #181818;
+
     border-right: 1px solid #333;
-    padding: 12px;
+
+    padding: 10px;
+
     overflow-y: auto;
 }
 
 #leftPanel h3 {
+
     margin: 5px 0 10px;
-    font-size: 16px;
-}
 
-.info {
-    background: #222;
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 10px;
-    font-size: 13px;
-}
-
-#myPeerId {
-    word-break: break-all;
-    color: #7dd3fc;
-}
-
-#qrcode {
-    background: white;
-    width: 220px;
-    height: 220px;
-    margin: 10px auto;
-    padding: 5px;
-    border-radius: 5px;
-}
-
-#qrcode img {
-    width: 100%;
-    height: 100%;
-}
-
-#startShare {
-    width: 100%;
-    height: 42px;
-    border: 0;
-    border-radius: 7px;
-    background: #ff9800;
-    color: white;
     font-size: 15px;
 }
 
-#startShare:hover {
-    background: #ffa726;
+.info {
+
+    background: #222;
+
+    padding: 9px;
+
+    border-radius: 7px;
+
+    margin-bottom: 8px;
+
+    font-size: 12px;
+}
+
+#myPeerId {
+
+    color: #64b5f6;
+
+    word-break: break-all;
+
+    margin-top: 5px;
+}
+
+#connectionPeerId {
+
+    color: #81c784;
+
+    word-break: break-all;
+
+    margin-top: 5px;
+}
+
+#qrcode {
+
+    width: 220px;
+
+    height: 220px;
+
+    margin: 10px auto;
+
+    padding: 5px;
+
+    background: white;
+
+    border-radius: 5px;
+}
+
+#startShare {
+
+    width: 100%;
+
+    height: 42px;
+
+    border: none;
+
+    border-radius: 7px;
+
+    background: #ff9800;
+
+    color: white;
+
+    font-size: 14px;
+}
+
+#startShare:active {
+
+    transform: scale(0.97);
 }
 
 #log {
+
+    height: 170px;
+
     background: #080808;
+
     border: 1px solid #333;
-    border-radius: 6px;
-    padding: 7px;
-    height: 180px;
+
+    border-radius: 5px;
+
+    padding: 6px;
+
     overflow-y: auto;
+
     font-family: monospace;
-    font-size: 11px;
+
+    font-size: 10px;
+
     white-space: pre-wrap;
 }
+
 
 /* =========================
    画面
 ========================= */
 
 #screenArea {
+
     flex: 1;
+
     min-width: 0;
     min-height: 0;
+
     position: relative;
-    background: #000;
+
+    background: black;
 
     display: flex;
-    align-items: center;
+
     justify-content: center;
+
+    align-items: center;
 }
 
 #remoteVideo {
+
     width: 100%;
+
     height: 100%;
+
     object-fit: contain;
-    background: #000;
+
+    background: black;
+
     display: block;
 }
 
-/* タップ座標表示 */
 #tapPoint {
+
     position: absolute;
-    width: 25px;
-    height: 25px;
+
+    width: 26px;
+
+    height: 26px;
+
     border: 3px solid red;
+
     border-radius: 50%;
-    pointer-events: none;
-    display: none;
+
     transform: translate(-50%, -50%);
+
+    pointer-events: none;
+
+    display: none;
+
     z-index: 50;
 }
+
 
 /* =========================
    キーボード
 ========================= */
 
 #keyboard {
+
     position: fixed;
+
     left: 0;
     right: 0;
     bottom: 0;
 
+    z-index: 1000;
+
     background: #171717;
+
     border-top: 1px solid #444;
 
     padding: 6px;
 
-    z-index: 1000;
-
     display: none;
-    flex-direction: column;
-    gap: 5px;
 
-    max-height: 48vh;
+    flex-direction: column;
+
+    gap: 4px;
+
+    max-height: 50vh;
+
     overflow-y: auto;
 }
 
 #keyboard.visible {
+
     display: flex;
 }
 
 .keyboardRow {
+
     display: flex;
+
     gap: 4px;
+
     width: 100%;
 }
 
 .key {
+
     flex: 1;
+
     min-width: 0;
-    height: 42px;
+
+    height: 40px;
 
     border: 1px solid #555;
+
     border-radius: 5px;
 
     background: #303030;
+
     color: white;
 
-    font-size: 13px;
+    font-size: 12px;
 
     display: flex;
+
     align-items: center;
+
     justify-content: center;
-
-    touch-action: manipulation;
-}
-
-.key:hover {
-    background: #444;
 }
 
 .key:active,
 .key.active {
+
     background: #666;
+
     transform: translateY(1px);
 }
 
-.key.wide {
+.wide {
+
     flex: 1.7;
 }
 
-.key.xwide {
-    flex: 2.5;
-}
+.space {
 
-.key.space {
     flex: 5;
 }
 
-.key.function {
+.function {
+
     background: #252525;
-    font-size: 11px;
+
+    font-size: 10px;
 }
 
-.key.special {
+.special {
+
     background: #3b3b3b;
 }
 
-.key.ime {
-    background: #1565c0;
+.ime {
+
+    background: #1565c0 !important;
 }
 
-.key.ime.active {
-    background: #1976d2;
-}
+.enter {
 
-.key.enter {
     background: #388e3c;
 }
 
-.key.backspace {
+.backspace {
+
     background: #8e3030;
 }
 
-/* =========================
-   フルスクリーン
-========================= */
-
-body.fullscreen #leftPanel {
-    display: none;
-}
-
-body.fullscreen #topBar {
-    display: none;
-}
-
-body.fullscreen #main {
-    width: 100vw;
-    height: 100vh;
-}
 
 /* =========================
    スマホ
@@ -328,36 +423,67 @@ body.fullscreen #main {
 @media (max-width: 700px) {
 
     #leftPanel {
+
         display: none;
     }
 
     #topBar {
+
         height: 50px;
-        min-height: 50px;
+    }
+
+    #main {
+
+        height: calc(100% - 50px);
     }
 
     #topBar button {
-        padding: 0 9px;
-        font-size: 12px;
-    }
 
-    #status {
-        font-size: 10px;
-    }
+        padding: 0 7px;
 
-    .key {
-        height: 38px;
         font-size: 11px;
     }
 
-    #keyboard {
-        max-height: 55vh;
+    #status {
+
+        font-size: 9px;
+    }
+
+    .key {
+
+        height: 38px;
+
+        font-size: 10px;
     }
 }
+
+
+/* =========================
+   全画面
+========================= */
+
+body.fullscreen #topBar {
+
+    display: none;
+}
+
+body.fullscreen #main {
+
+    height: 100%;
+}
+
+body.fullscreen #leftPanel {
+
+    display: none;
+}
+
 </style>
+
 </head>
 
+
 <body>
+
 
 <!-- =========================
      上部
@@ -382,7 +508,7 @@ body.fullscreen #main {
     </button>
 
     <div id="status">
-        接続待機中
+        Peer接続中...
     </div>
 
 </div>
@@ -394,35 +520,76 @@ body.fullscreen #main {
 
 <div id="main">
 
+
     <!-- 左パネル -->
 
     <div id="leftPanel">
 
-        <h3>📱 P2P Remote Control</h3>
+        <h3>
+            📱 P2P Remote Control
+        </h3>
+
 
         <div class="info">
-            <div>自分のPeer ID</div>
-            <div id="myPeerId">接続中...</div>
+
+            <div>
+                PC Peer ID
+            </div>
+
+            <div id="myPeerId">
+                作成中...
+            </div>
+
         </div>
+
+
+        <div class="info">
+
+            <div>
+                接続中のスマホ
+            </div>
+
+            <div id="connectionPeerId">
+                未接続
+            </div>
+
+        </div>
+
 
         <div id="qrcode"></div>
 
+
         <div class="info">
-            スマートフォンで上のQRコードを読み取ってください。
+
+            スマホでQRコードを読み取ってください。
+
+            <br><br>
+
+            読み取り後、
+            自動的にPCへ接続します。
+
         </div>
 
+
         <button id="startShare">
-            🖥️ 画面共有開始
+
+            🖥️ スマホへ画面共有
+
         </button>
 
-        <h3>ログ</h3>
+
+        <h3>
+            ログ
+        </h3>
 
         <div id="log"></div>
 
     </div>
 
 
-    <!-- 画面 -->
+    <!-- =========================
+         画面
+    ========================= -->
 
     <div id="screenArea">
 
@@ -441,58 +608,85 @@ body.fullscreen #main {
 
 
 <!-- =========================
-     仮想キーボード
+     キーボード
 ========================= -->
 
 <div id="keyboard">
 
-    <!-- ファンクション -->
+
+    <!-- Fキー -->
 
     <div class="keyboardRow">
 
         <button class="key function"
-                data-key="ESC">Esc</button>
+                data-key="ESC">
+            Esc
+        </button>
 
         <button class="key function"
-                data-key="F1">F1</button>
+                data-key="F1">
+            F1
+        </button>
 
         <button class="key function"
-                data-key="F2">F2</button>
+                data-key="F2">
+            F2
+        </button>
 
         <button class="key function"
-                data-key="F3">F3</button>
+                data-key="F3">
+            F3
+        </button>
 
         <button class="key function"
-                data-key="F4">F4</button>
+                data-key="F4">
+            F4
+        </button>
 
         <button class="key function"
-                data-key="F5">F5</button>
+                data-key="F5">
+            F5
+        </button>
 
         <button class="key function"
-                data-key="F6">F6</button>
+                data-key="F6">
+            F6
+        </button>
 
         <button class="key function"
-                data-key="F7">F7</button>
+                data-key="F7">
+            F7
+        </button>
 
         <button class="key function"
-                data-key="F8">F8</button>
+                data-key="F8">
+            F8
+        </button>
 
         <button class="key function"
-                data-key="F9">F9</button>
+                data-key="F9">
+            F9
+        </button>
 
         <button class="key function"
-                data-key="F10">F10</button>
+                data-key="F10">
+            F10
+        </button>
 
         <button class="key function"
-                data-key="F11">F11</button>
+                data-key="F11">
+            F11
+        </button>
 
         <button class="key function"
-                data-key="F12">F12</button>
+                data-key="F12">
+            F12
+        </button>
 
     </div>
 
 
-    <!-- 数字列 -->
+    <!-- 数字 -->
 
     <div class="keyboardRow">
 
@@ -501,44 +695,19 @@ body.fullscreen #main {
             半角/全角
         </button>
 
-        <button class="key"
-                data-key="1">1</button>
-
-        <button class="key"
-                data-key="2">2</button>
-
-        <button class="key"
-                data-key="3">3</button>
-
-        <button class="key"
-                data-key="4">4</button>
-
-        <button class="key"
-                data-key="5">5</button>
-
-        <button class="key"
-                data-key="6">6</button>
-
-        <button class="key"
-                data-key="7">7</button>
-
-        <button class="key"
-                data-key="8">8</button>
-
-        <button class="key"
-                data-key="9">9</button>
-
-        <button class="key"
-                data-key="0">0</button>
-
-        <button class="key"
-                data-key="-">-</button>
-
-        <button class="key"
-                data-key="^">^</button>
-
-        <button class="key"
-                data-key="¥">¥</button>
+        <button class="key" data-key="1">1</button>
+        <button class="key" data-key="2">2</button>
+        <button class="key" data-key="3">3</button>
+        <button class="key" data-key="4">4</button>
+        <button class="key" data-key="5">5</button>
+        <button class="key" data-key="6">6</button>
+        <button class="key" data-key="7">7</button>
+        <button class="key" data-key="8">8</button>
+        <button class="key" data-key="9">9</button>
+        <button class="key" data-key="0">0</button>
+        <button class="key" data-key="-">-</button>
+        <button class="key" data-key="^">^</button>
+        <button class="key" data-key="¥">¥</button>
 
         <button class="key backspace wide"
                 data-key="BACKSPACE">
@@ -557,41 +726,18 @@ body.fullscreen #main {
             Tab
         </button>
 
-        <button class="key"
-                data-key="q">Q</button>
-
-        <button class="key"
-                data-key="w">W</button>
-
-        <button class="key"
-                data-key="e">E</button>
-
-        <button class="key"
-                data-key="r">R</button>
-
-        <button class="key"
-                data-key="t">T</button>
-
-        <button class="key"
-                data-key="y">Y</button>
-
-        <button class="key"
-                data-key="u">U</button>
-
-        <button class="key"
-                data-key="i">I</button>
-
-        <button class="key"
-                data-key="o">O</button>
-
-        <button class="key"
-                data-key="p">P</button>
-
-        <button class="key"
-                data-key="@">@</button>
-
-        <button class="key"
-                data-key="[">[</button>
+        <button class="key" data-key="q">Q</button>
+        <button class="key" data-key="w">W</button>
+        <button class="key" data-key="e">E</button>
+        <button class="key" data-key="r">R</button>
+        <button class="key" data-key="t">T</button>
+        <button class="key" data-key="y">Y</button>
+        <button class="key" data-key="u">U</button>
+        <button class="key" data-key="i">I</button>
+        <button class="key" data-key="o">O</button>
+        <button class="key" data-key="p">P</button>
+        <button class="key" data-key="@">@</button>
+        <button class="key" data-key="[">[</button>
 
     </div>
 
@@ -605,41 +751,18 @@ body.fullscreen #main {
             Caps
         </button>
 
-        <button class="key"
-                data-key="a">A</button>
-
-        <button class="key"
-                data-key="s">S</button>
-
-        <button class="key"
-                data-key="d">D</button>
-
-        <button class="key"
-                data-key="f">F</button>
-
-        <button class="key"
-                data-key="g">G</button>
-
-        <button class="key"
-                data-key="h">H</button>
-
-        <button class="key"
-                data-key="j">J</button>
-
-        <button class="key"
-                data-key="k">K</button>
-
-        <button class="key"
-                data-key="l">L</button>
-
-        <button class="key"
-                data-key=";">;</button>
-
-        <button class="key"
-                data-key=":">:</button>
-
-        <button class="key"
-                data-key="]">]</button>
+        <button class="key" data-key="a">A</button>
+        <button class="key" data-key="s">S</button>
+        <button class="key" data-key="d">D</button>
+        <button class="key" data-key="f">F</button>
+        <button class="key" data-key="g">G</button>
+        <button class="key" data-key="h">H</button>
+        <button class="key" data-key="j">J</button>
+        <button class="key" data-key="k">K</button>
+        <button class="key" data-key="l">L</button>
+        <button class="key" data-key=";">;</button>
+        <button class="key" data-key=":">:</button>
+        <button class="key" data-key="]">]</button>
 
         <button class="key enter wide"
                 data-key="ENTER">
@@ -658,38 +781,17 @@ body.fullscreen #main {
             Shift
         </button>
 
-        <button class="key"
-                data-key="z">Z</button>
-
-        <button class="key"
-                data-key="x">X</button>
-
-        <button class="key"
-                data-key="c">C</button>
-
-        <button class="key"
-                data-key="v">V</button>
-
-        <button class="key"
-                data-key="b">B</button>
-
-        <button class="key"
-                data-key="n">N</button>
-
-        <button class="key"
-                data-key="m">M</button>
-
-        <button class="key"
-                data-key=",">,</button>
-
-        <button class="key"
-                data-key=".">.</button>
-
-        <button class="key"
-                data-key="/">/</button>
-
-        <button class="key"
-                data-key="\\">\\</button>
+        <button class="key" data-key="z">Z</button>
+        <button class="key" data-key="x">X</button>
+        <button class="key" data-key="c">C</button>
+        <button class="key" data-key="v">V</button>
+        <button class="key" data-key="b">B</button>
+        <button class="key" data-key="n">N</button>
+        <button class="key" data-key="m">M</button>
+        <button class="key" data-key=",">,</button>
+        <button class="key" data-key=".">.</button>
+        <button class="key" data-key="/">/</button>
+        <button class="key" data-key="\\">\\</button>
 
         <button class="key wide"
                 data-key="SHIFT">
@@ -761,30 +863,59 @@ body.fullscreen #main {
 <script>
 
 /* =========================================================
-   基本設定
+   設定
 ========================================================= */
 
-const PYTHON_SERVER = "http://127.0.0.1:5000";
+const PYTHON_SERVER =
+    "http://127.0.0.1:5000";
 
-const remoteVideo = document.getElementById("remoteVideo");
-const screenArea = document.getElementById("screenArea");
-const tapPoint = document.getElementById("tapPoint");
-const statusEl = document.getElementById("status");
-const logEl = document.getElementById("log");
-const keyboard = document.getElementById("keyboard");
+
+/* =========================================================
+   DOM
+========================================================= */
+
+const remoteVideo =
+    document.getElementById(
+        "remoteVideo"
+    );
+
+const screenArea =
+    document.getElementById(
+        "screenArea"
+    );
+
+const tapPoint =
+    document.getElementById(
+        "tapPoint"
+    );
+
+const statusEl =
+    document.getElementById(
+        "status"
+    );
+
+const logEl =
+    document.getElementById(
+        "log"
+    );
+
+const keyboard =
+    document.getElementById(
+        "keyboard"
+    );
 
 
 /* =========================================================
    ログ
 ========================================================= */
 
-function log(message) {
+function log(text) {
 
     const time =
         new Date().toLocaleTimeString();
 
     logEl.textContent +=
-        `[${time}] ${message}\n`;
+        `[${time}] ${text}\n`;
 
     logEl.scrollTop =
         logEl.scrollHeight;
@@ -792,188 +923,439 @@ function log(message) {
 
 
 /* =========================================================
-   PeerJS
+   Peer
 ========================================================= */
 
 let peer = null;
+
 let connection = null;
 
-function setStatus(text) {
 
-    statusEl.textContent = text;
-
-}
-
-
-/* Peer生成 */
+/* =========================================================
+   Peer作成
+========================================================= */
 
 function createPeer() {
 
-    peer = new Peer(undefined, {
-        debug: 1
-    });
-
-
-    peer.on("open", id => {
-
-        document.getElementById("myPeerId")
-            .textContent = id;
-
-        log("Peer ID: " + id);
-
-        setStatus("接続待機中");
-
-        createQRCode(id);
-
-    });
-
-
-    peer.on("error", err => {
-
-        console.error(err);
-
-        log("Peerエラー: " + err.type);
-
-        setStatus("Peerエラー");
-
-    });
-
-
     /*
-     * スマホからの接続
+     * GitHub PagesはHTTPSなので
+     * PeerJS CloudもHTTPS/443を明示
      */
 
-    peer.on("connection", conn => {
+    peer = new Peer({
 
-        connection = conn;
+        host: "0.peerjs.com",
 
-        log("データ接続要求");
+        port: 443,
 
-        setupDataConnection(conn);
+        path: "/",
 
-    });
+        secure: true,
 
-
-    /*
-     * 画面共有受信
-     */
-
-    peer.on("call", call => {
-
-        log("映像通話を受信");
-
-        call.answer();
-
-        call.on("stream", stream => {
-
-            remoteVideo.srcObject = stream;
-
-            remoteVideo.play()
-                .catch(() => {});
-
-            log("リモート画面を表示");
-
-        });
+        debug: 2
 
     });
+
+
+    /* =========================
+       自分のPeer ID
+    ========================= */
+
+    peer.on(
+        "open",
+        id => {
+
+            document.getElementById(
+                "myPeerId"
+            ).textContent = id;
+
+            log(
+                "Peer接続成功"
+            );
+
+            log(
+                "PC Peer ID: " + id
+            );
+
+            statusEl.textContent =
+                "QR読み取り待機中";
+
+            createQRCode(id);
+
+            /*
+             * URLにtargetがある場合は
+             * スマホ側なのでPCへ接続
+             */
+
+            connectToTarget();
+
+        }
+    );
+
+
+    /* =========================
+       スマホから接続
+    ========================= */
+
+    peer.on(
+        "connection",
+        conn => {
+
+            log(
+                "スマホから接続要求"
+            );
+
+            setupConnection(conn);
+
+        }
+    );
+
+
+    /* =========================
+       映像受信
+    ========================= */
+
+    peer.on(
+        "call",
+        call => {
+
+            log(
+                "映像通話を受信"
+            );
+
+            /*
+             * スマホ側からPCへ
+             * 映像が送られてきた場合
+             */
+
+            call.answer();
+
+            call.on(
+                "stream",
+                stream => {
+
+                    remoteVideo.srcObject =
+                        stream;
+
+                    remoteVideo.play()
+                        .catch(() => {});
+
+                    log(
+                        "映像受信開始"
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+    /* =========================
+       Peerエラー
+    ========================= */
+
+    peer.on(
+        "error",
+        error => {
+
+            console.error(error);
+
+            log(
+                "Peer ERROR: " +
+                error.type
+            );
+
+            statusEl.textContent =
+                "接続エラー: " +
+                error.type;
+
+        }
+    );
+
+
+    peer.on(
+        "disconnected",
+        () => {
+
+            log(
+                "PeerServerから切断"
+            );
+
+            statusEl.textContent =
+                "再接続中...";
+
+            setTimeout(
+                () => {
+
+                    if (
+                        peer &&
+                        peer.disconnected
+                    ) {
+
+                        peer.reconnect();
+
+                    }
+
+                },
+                1000
+            );
+
+        }
+    );
 
 }
 
 
 /* =========================================================
-   QRコード
+   QR
 ========================================================= */
 
 function createQRCode(peerId) {
 
-    const qrcode =
-        document.getElementById("qrcode");
+    const box =
+        document.getElementById(
+            "qrcode"
+        );
 
-    qrcode.innerHTML = "";
+    box.innerHTML = "";
+
+
+    /*
+     * 現在開いているGitHub PagesのURL
+     *
+     * 例:
+     *
+     * https://xxx.github.io/P2P_WebRTC_TEST/
+     *
+     * ↓
+     *
+     * https://xxx.github.io/P2P_WebRTC_TEST/?target=ABC123
+     */
 
     const url =
-        location.origin +
-        location.pathname +
-        "?target=" +
-        encodeURIComponent(peerId);
+        new URL(
+            location.href
+        );
 
-    new QRCode(qrcode, {
+    url.search = "";
 
-        text: url,
+    url.hash = "";
 
-        width: 210,
+    url.searchParams.set(
+        "target",
+        peerId
+    );
 
-        height: 210,
 
-        correctLevel:
-            QRCode.CorrectLevel.M
+    log(
+        "QR URL: " +
+        url.toString()
+    );
 
-    });
+
+    new QRCode(
+        box,
+        {
+
+            text:
+                url.toString(),
+
+            width: 210,
+
+            height: 210,
+
+            correctLevel:
+                QRCode.CorrectLevel.M
+
+        }
+    );
 
 }
 
 
 /* =========================================================
-   データ接続
+   targetへ接続
 ========================================================= */
 
-function setupDataConnection(conn) {
+function connectToTarget() {
+
+    const params =
+        new URLSearchParams(
+            location.search
+        );
+
+    const target =
+        params.get("target");
+
+
+    /*
+     * targetなし
+     * = PC側
+     */
+
+    if (!target) {
+
+        log(
+            "PCモード"
+        );
+
+        return;
+
+    }
+
+
+    /*
+     * targetあり
+     * = スマホ側
+     */
+
+    log(
+        "スマホモード"
+    );
+
+    log(
+        "接続先: " + target
+    );
+
+
+    statusEl.textContent =
+        "PCへ接続中...";
+
+
+    const conn =
+        peer.connect(
+            target,
+            {
+
+                reliable: true,
+
+                serialization: "json"
+
+            }
+        );
+
+
+    setupConnection(conn);
+
+}
+
+
+/* =========================================================
+   DataConnection
+========================================================= */
+
+function setupConnection(conn) {
 
     connection = conn;
 
 
-    conn.on("open", () => {
+    /*
+     * 接続先Peer ID
+     */
 
-        log("スマートフォン接続");
-
-        setStatus("📱 スマホ接続済み");
-
-    });
-
-
-    conn.on("data", data => {
-
-        handleRemoteData(data);
-
-    });
+    document.getElementById(
+        "connectionPeerId"
+    ).textContent =
+        conn.peer;
 
 
-    conn.on("close", () => {
-
-        log("スマートフォン切断");
-
-        setStatus("接続待機中");
-
-        connection = null;
-
-    });
+    log(
+        "接続先Peer: " +
+        conn.peer
+    );
 
 
-    conn.on("error", err => {
+    conn.on(
+        "open",
+        () => {
 
-        log("DataConnectionエラー");
+            log(
+                "★★★★★ P2P接続成功 ★★★★★"
+            );
 
-        console.error(err);
+            statusEl.textContent =
+                "📱 接続済み";
 
-    });
+        }
+    );
+
+
+    conn.on(
+        "data",
+        data => {
+
+            log(
+                "DATA受信: " +
+                JSON.stringify(data)
+            );
+
+            handleData(data);
+
+        }
+    );
+
+
+    conn.on(
+        "close",
+        () => {
+
+            log(
+                "P2P接続終了"
+            );
+
+            connection = null;
+
+            statusEl.textContent =
+                "切断";
+
+            document.getElementById(
+                "connectionPeerId"
+            ).textContent =
+                "未接続";
+
+        }
+    );
+
+
+    conn.on(
+        "error",
+        error => {
+
+            console.error(error);
+
+            log(
+                "DataConnection ERROR: " +
+                error
+            );
+
+            statusEl.textContent =
+                "データ接続エラー";
+
+        }
+    );
 
 }
 
 
 /* =========================================================
-   スマホからのデータ
+   DATA処理
 ========================================================= */
 
-function handleRemoteData(data) {
+function handleData(data) {
 
-    if (!data) return;
+    if (!data) {
+        return;
+    }
 
 
     /*
-     * タップ
+     * スマホからクリック
      */
 
-    if (data.type === "click") {
+    if (
+        data.type === "click"
+    ) {
 
         sendClickToPython(
             data.x,
@@ -981,145 +1363,182 @@ function handleRemoteData(data) {
         );
 
         return;
+
     }
 
 
     /*
-     * キー
+     * スマホからキー
      */
 
-    if (data.type === "key") {
+    if (
+        data.type === "key"
+    ) {
 
         sendKeyToPython(
             data.key
         );
 
         return;
-    }
 
-
-    /*
-     * テキスト
-     */
-
-    if (data.type === "text") {
-
-        sendTextToPython(
-            data.text
-        );
-
-        return;
     }
 
 }
 
 
 /* =========================================================
+   PC → スマホ
    画面共有
 ========================================================= */
 
-document.getElementById("startShare")
-    .addEventListener("click", async () => {
-
-        try {
-
-            const stream =
-                await navigator.mediaDevices
-                    .getDisplayMedia({
-
-                        video: {
-                            cursor: "always"
-                        },
-
-                        audio: false
-
-                    });
-
-
-            remoteVideo.srcObject = stream;
-
-            remoteVideo.play()
-                .catch(() => {});
-
-
-            stream
-                .getVideoTracks()[0]
-                .addEventListener(
-                    "ended",
-                    () => {
-
-                        log("画面共有終了");
-
-                    }
-                );
-
+document
+    .getElementById("startShare")
+    .addEventListener(
+        "click",
+        async () => {
 
             /*
-             * target がある場合
-             * スマホへ映像を送る
+             * スマホが接続しているか
              */
 
-            const params =
-                new URLSearchParams(
-                    location.search
+            if (
+                !connection ||
+                !connection.open
+            ) {
+
+                alert(
+                    "先にスマートフォンをQRコードから接続してください。"
                 );
-
-            const target =
-                params.get("target");
-
-
-            if (target) {
 
                 log(
-                    "Peer IDへ画面送信: " +
-                    target
+                    "画面共有失敗: スマホ未接続"
                 );
 
-                const outgoingPeer =
-                    new Peer();
+                return;
 
-                outgoingPeer.on(
-                    "open",
-                    () => {
+            }
 
-                        const call =
-                            outgoingPeer.call(
-                                target,
-                                stream
-                            );
 
-                        call.on(
-                            "error",
-                            err => {
-                                console.error(err);
-                            }
+            try {
+
+                log(
+                    "画面共有を開始..."
+                );
+
+
+                /*
+                 * PC画面取得
+                 */
+
+                const stream =
+                    await navigator
+                        .mediaDevices
+                        .getDisplayMedia({
+
+                            video: {
+
+                                cursor:
+                                    "always"
+
+                            },
+
+                            audio: false
+
+                        });
+
+
+                /*
+                 * PC画面を自分にも表示
+                 */
+
+                remoteVideo.srcObject =
+                    stream;
+
+                remoteVideo.play()
+                    .catch(() => {});
+
+
+                /*
+                 * ★ここが重要
+                 *
+                 * 接続済みスマホの
+                 * Peer IDへ直接call
+                 */
+
+                const call =
+                    peer.call(
+                        connection.peer,
+                        stream
+                    );
+
+
+                call.on(
+                    "error",
+                    error => {
+
+                        console.error(error);
+
+                        log(
+                            "映像送信ERROR: " +
+                            error
                         );
 
                     }
                 );
 
+
+                call.on(
+                    "close",
+                    () => {
+
+                        log(
+                            "映像送信終了"
+                        );
+
+                    }
+                );
+
+
+                log(
+                    "スマホへ画面送信開始"
+                );
+
+
+                /*
+                 * 画面共有終了
+                 */
+
+                stream
+                    .getVideoTracks()[0]
+                    .addEventListener(
+                        "ended",
+                        () => {
+
+                            log(
+                                "画面共有終了"
+                            );
+
+                        }
+                    );
+
+            }
+            catch (error) {
+
+                console.error(error);
+
+                log(
+                    "画面共有ERROR: " +
+                    error.message
+                );
+
             }
 
-
-            log("画面共有開始");
-
         }
-        catch (error) {
-
-            console.error(error);
-
-            log(
-                "画面共有エラー: " +
-                error.message
-            );
-
-        }
-
-    });
+    );
 
 
 /* =========================================================
-   タップ座標
+   クリック
 ========================================================= */
 
 screenArea.addEventListener(
@@ -1127,11 +1546,16 @@ screenArea.addEventListener(
     event => {
 
         if (
-            event.target !== remoteVideo &&
-            event.target !== screenArea
+            event.target !==
+                remoteVideo &&
+            event.target !==
+                screenArea
         ) {
+
             return;
+
         }
+
 
         sendScreenCoordinate(
             event.clientX,
@@ -1142,18 +1566,26 @@ screenArea.addEventListener(
 );
 
 
-/* タッチ */
+/* =========================================================
+   タッチ
+========================================================= */
 
 screenArea.addEventListener(
     "touchstart",
     event => {
 
-        if (!event.touches.length) {
+        if (
+            !event.touches.length
+        ) {
+
             return;
+
         }
+
 
         const touch =
             event.touches[0];
+
 
         sendScreenCoordinate(
             touch.clientX,
@@ -1168,13 +1600,17 @@ screenArea.addEventListener(
 
 
 /* =========================================================
-   画面上の座標を映像座標へ変換
+   座標変換
 ========================================================= */
 
-function sendScreenCoordinate(clientX, clientY) {
+function sendScreenCoordinate(
+    clientX,
+    clientY
+) {
 
     const rect =
-        remoteVideo.getBoundingClientRect();
+        remoteVideo
+            .getBoundingClientRect();
 
 
     if (
@@ -1183,7 +1619,9 @@ function sendScreenCoordinate(clientX, clientY) {
         clientY < rect.top ||
         clientY > rect.bottom
     ) {
+
         return;
+
     }
 
 
@@ -1194,14 +1632,15 @@ function sendScreenCoordinate(clientX, clientY) {
         remoteVideo.videoHeight;
 
 
-    if (!videoWidth || !videoHeight) {
+    if (
+        !videoWidth ||
+        !videoHeight
+    ) {
+
         return;
+
     }
 
-
-    /*
-     * object-fit: contain の黒帯を考慮
-     */
 
     const containerWidth =
         rect.width;
@@ -1211,28 +1650,38 @@ function sendScreenCoordinate(clientX, clientY) {
 
 
     const videoRatio =
-        videoWidth / videoHeight;
+        videoWidth /
+        videoHeight;
 
     const containerRatio =
-        containerWidth / containerHeight;
+        containerWidth /
+        containerHeight;
 
 
     let displayWidth;
     let displayHeight;
+
     let offsetX;
     let offsetY;
 
 
-    if (containerRatio > videoRatio) {
+    if (
+        containerRatio >
+        videoRatio
+    ) {
 
         displayHeight =
             containerHeight;
 
         displayWidth =
-            displayHeight * videoRatio;
+            displayHeight *
+            videoRatio;
 
         offsetX =
-            (containerWidth - displayWidth) / 2;
+            (
+                containerWidth -
+                displayWidth
+            ) / 2;
 
         offsetY = 0;
 
@@ -1243,12 +1692,16 @@ function sendScreenCoordinate(clientX, clientY) {
             containerWidth;
 
         displayHeight =
-            displayWidth / videoRatio;
+            displayWidth /
+            videoRatio;
 
         offsetX = 0;
 
         offsetY =
-            (containerHeight - displayHeight) / 2;
+            (
+                containerHeight -
+                displayHeight
+            ) / 2;
 
     }
 
@@ -1270,13 +1723,11 @@ function sendScreenCoordinate(clientX, clientY) {
         x > displayWidth ||
         y > displayHeight
     ) {
+
         return;
+
     }
 
-
-    /*
-     * 実際の映像座標
-     */
 
     const videoX =
         Math.round(
@@ -1294,7 +1745,7 @@ function sendScreenCoordinate(clientX, clientY) {
 
 
     /*
-     * 画面に赤丸
+     * 赤丸
      */
 
     tapPoint.style.left =
@@ -1311,76 +1762,69 @@ function sendScreenCoordinate(clientX, clientY) {
         window.tapTimer
     );
 
+
     window.tapTimer =
-        setTimeout(() => {
+        setTimeout(
+            () => {
 
-            tapPoint.style.display =
-                "none";
+                tapPoint.style.display =
+                    "none";
 
-        }, 300);
+            },
+            300
+        );
 
 
     log(
-        `タップ X=${videoX} Y=${videoY}`
+        `クリック X=${videoX} Y=${videoY}`
     );
 
+
+    /*
+     * Python
+     */
 
     sendClickToPython(
         videoX,
         videoY
     );
 
-
-    /*
-     * スマホにも送信
-     */
-
-    if (
-        connection &&
-        connection.open
-    ) {
-
-        connection.send({
-
-            type: "click",
-
-            x: videoX,
-
-            y: videoY
-
-        });
-
-    }
-
 }
 
 
 /* =========================================================
-   Pythonへクリック送信
+   Pythonクリック
 ========================================================= */
 
-async function sendClickToPython(x, y) {
+async function sendClickToPython(
+    x,
+    y
+) {
 
     try {
 
         await fetch(
-            PYTHON_SERVER + "/click",
+            PYTHON_SERVER +
+            "/click",
             {
 
                 method: "POST",
 
                 headers: {
+
                     "Content-Type":
                         "application/json"
+
                 },
 
-                body: JSON.stringify({
+                body:
+                    JSON.stringify({
 
-                    x: x,
+                        x: x,
 
-                    y: y
+                        y: y
 
-                })
+                    })
 
             }
         );
@@ -1388,9 +1832,10 @@ async function sendClickToPython(x, y) {
     }
     catch (error) {
 
-        console.error(
-            "Python click:",
-            error
+        console.error(error);
+
+        log(
+            "Python接続エラー"
         );
 
     }
@@ -1399,32 +1844,40 @@ async function sendClickToPython(x, y) {
 
 
 /* =========================================================
-   Pythonへキー送信
+   Pythonキー
 ========================================================= */
 
-async function sendKeyToPython(key) {
+async function sendKeyToPython(
+    key
+) {
 
-    log("キー: " + key);
+    log(
+        "キー: " + key
+    );
 
 
     try {
 
         await fetch(
-            PYTHON_SERVER + "/key",
+            PYTHON_SERVER +
+            "/key",
             {
 
                 method: "POST",
 
                 headers: {
+
                     "Content-Type":
                         "application/json"
+
                 },
 
-                body: JSON.stringify({
+                body:
+                    JSON.stringify({
 
-                    key: key
+                        key: key
 
-                })
+                    })
 
             }
         );
@@ -1432,51 +1885,7 @@ async function sendKeyToPython(key) {
     }
     catch (error) {
 
-        console.error(
-            "Python key:",
-            error
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   Pythonへ文字列送信
-========================================================= */
-
-async function sendTextToPython(text) {
-
-    try {
-
-        await fetch(
-            PYTHON_SERVER + "/text",
-            {
-
-                method: "POST",
-
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-
-                body: JSON.stringify({
-
-                    text: text
-
-                })
-
-            }
-        );
-
-    }
-    catch (error) {
-
-        console.error(
-            "Python text:",
-            error
-        );
+        console.error(error);
 
     }
 
@@ -1487,139 +1896,108 @@ async function sendTextToPython(text) {
    フルスクリーン
 ========================================================= */
 
-document.getElementById("fullscreenBtn")
-    .addEventListener("click", async () => {
+document
+    .getElementById(
+        "fullscreenBtn"
+    )
+    .addEventListener(
+        "click",
+        async () => {
 
-        try {
+            try {
 
-            if (!document.fullscreenElement) {
+                if (
+                    !document.fullscreenElement
+                ) {
 
-                await document.documentElement
-                    .requestFullscreen();
+                    await document
+                        .documentElement
+                        .requestFullscreen();
 
-                document.body
-                    .classList
-                    .add("fullscreen");
+                    document.body
+                        .classList
+                        .add("fullscreen");
+
+                }
+                else {
+
+                    await document
+                        .exitFullscreen();
+
+                    document.body
+                        .classList
+                        .remove(
+                            "fullscreen"
+                        );
+
+                }
 
             }
-            else {
+            catch (error) {
 
-                await document.exitFullscreen();
-
-                document.body
-                    .classList
-                    .remove("fullscreen");
+                console.error(error);
 
             }
 
         }
-        catch (error) {
-
-            console.error(error);
-
-        }
-
-    });
-
-
-document.addEventListener(
-    "fullscreenchange",
-    () => {
-
-        if (document.fullscreenElement) {
-
-            document.body
-                .classList
-                .add("fullscreen");
-
-        }
-        else {
-
-            document.body
-                .classList
-                .remove("fullscreen");
-
-        }
-
-    }
-);
+    );
 
 
 /* =========================================================
    キーボード表示
 ========================================================= */
 
-document.getElementById("keyboardBtn")
-    .addEventListener("click", () => {
+document
+    .getElementById(
+        "keyboardBtn"
+    )
+    .addEventListener(
+        "click",
+        () => {
 
-        keyboard.classList.toggle(
-            "visible"
-        );
+            keyboard
+                .classList
+                .toggle(
+                    "visible"
+                );
 
-    });
+        }
+    );
 
 
 /* =========================================================
    IME
 ========================================================= */
 
-let imeMode = "english";
-
-
-function setIME(mode) {
-
-    imeMode = mode;
-
-
-    if (mode === "japanese") {
-
-        sendKeyToPython(
-            "IME_JAPANESE"
-        );
-
-        document.getElementById(
-            "japaneseBtn"
-        ).classList.add("ime", "active");
-
-        document.getElementById(
-            "englishBtn"
-        ).classList.remove("active");
-
-        log("入力モード: 日本語");
-
-    }
-    else {
-
-        sendKeyToPython(
-            "IME_ENGLISH"
-        );
-
-        document.getElementById(
-            "englishBtn"
-        ).classList.add("ime", "active");
-
-        document.getElementById(
-            "japaneseBtn"
-        ).classList.remove("active");
-
-        log("入力モード: 英数");
-
-    }
-
-}
-
-
-document.getElementById("japaneseBtn")
+document
+    .getElementById(
+        "japaneseBtn"
+    )
     .addEventListener(
         "click",
-        () => setIME("japanese")
+        () => {
+
+            sendKeyToPython(
+                "IME_JAPANESE"
+            );
+
+        }
     );
 
 
-document.getElementById("englishBtn")
+document
+    .getElementById(
+        "englishBtn"
+    )
     .addEventListener(
         "click",
-        () => setIME("english")
+        () => {
+
+            sendKeyToPython(
+                "IME_ENGLISH"
+            );
+
+        }
     );
 
 
@@ -1633,206 +2011,165 @@ let altPressed = false;
 let winPressed = false;
 
 
-/*
- * 通常キー
- */
-
 document
     .querySelectorAll(".key")
-    .forEach(button => {
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "pointerdown",
+                event => {
+
+                    event.preventDefault();
 
 
-        /*
-         * 長押し対応
-         */
-
-        button.addEventListener(
-            "pointerdown",
-            event => {
-
-                event.preventDefault();
-
-                const key =
-                    button.dataset.key;
+                    const key =
+                        button.dataset.key;
 
 
-                /*
-                 * Shift
-                 */
+                    /*
+                     * Shift
+                     */
 
-                if (key === "SHIFT") {
+                    if (
+                        key === "SHIFT"
+                    ) {
 
-                    shiftPressed =
-                        !shiftPressed;
+                        shiftPressed =
+                            !shiftPressed;
 
-                    button.classList.toggle(
-                        "active",
-                        shiftPressed
-                    );
+                        button
+                            .classList
+                            .toggle(
+                                "active",
+                                shiftPressed
+                            );
+
+                        sendKeyToPython(
+                            shiftPressed
+                                ? "SHIFT_DOWN"
+                                : "SHIFT_UP"
+                        );
+
+                        return;
+
+                    }
+
+
+                    /*
+                     * Ctrl
+                     */
+
+                    if (
+                        key === "CTRL"
+                    ) {
+
+                        ctrlPressed =
+                            !ctrlPressed;
+
+                        button
+                            .classList
+                            .toggle(
+                                "active",
+                                ctrlPressed
+                            );
+
+                        sendKeyToPython(
+                            ctrlPressed
+                                ? "CTRL_DOWN"
+                                : "CTRL_UP"
+                        );
+
+                        return;
+
+                    }
+
+
+                    /*
+                     * Alt
+                     */
+
+                    if (
+                        key === "ALT"
+                    ) {
+
+                        altPressed =
+                            !altPressed;
+
+                        button
+                            .classList
+                            .toggle(
+                                "active",
+                                altPressed
+                            );
+
+                        sendKeyToPython(
+                            altPressed
+                                ? "ALT_DOWN"
+                                : "ALT_UP"
+                        );
+
+                        return;
+
+                    }
+
+
+                    /*
+                     * Win
+                     */
+
+                    if (
+                        key === "WIN"
+                    ) {
+
+                        winPressed =
+                            !winPressed;
+
+                        button
+                            .classList
+                            .toggle(
+                                "active",
+                                winPressed
+                            );
+
+                        sendKeyToPython(
+                            winPressed
+                                ? "WIN_DOWN"
+                                : "WIN_UP"
+                        );
+
+                        return;
+
+                    }
+
+
+                    /*
+                     * 通常キー
+                     */
 
                     sendKeyToPython(
-                        shiftPressed
-                            ? "SHIFT_DOWN"
-                            : "SHIFT_UP"
+                        key
                     );
 
-                    return;
                 }
-
-
-                /*
-                 * Ctrl
-                 */
-
-                if (key === "CTRL") {
-
-                    ctrlPressed =
-                        !ctrlPressed;
-
-                    button.classList.toggle(
-                        "active",
-                        ctrlPressed
-                    );
-
-                    sendKeyToPython(
-                        ctrlPressed
-                            ? "CTRL_DOWN"
-                            : "CTRL_UP"
-                    );
-
-                    return;
-                }
-
-
-                /*
-                 * Alt
-                 */
-
-                if (key === "ALT") {
-
-                    altPressed =
-                        !altPressed;
-
-                    button.classList.toggle(
-                        "active",
-                        altPressed
-                    );
-
-                    sendKeyToPython(
-                        altPressed
-                            ? "ALT_DOWN"
-                            : "ALT_UP"
-                    );
-
-                    return;
-                }
-
-
-                /*
-                 * Win
-                 */
-
-                if (key === "WIN") {
-
-                    winPressed =
-                        !winPressed;
-
-                    button.classList.toggle(
-                        "active",
-                        winPressed
-                    );
-
-                    sendKeyToPython(
-                        winPressed
-                            ? "WIN_DOWN"
-                            : "WIN_UP"
-                    );
-
-                    return;
-                }
-
-
-                /*
-                 * 普通キー
-                 */
-
-                sendKeyToPython(key);
-
-            }
-        );
-
-    });
-
-
-/* =========================================================
-   QRコードからtargetを取得
-========================================================= */
-
-const params =
-    new URLSearchParams(
-        location.search
-    );
-
-const targetPeer =
-    params.get("target");
-
-
-/*
- * target が指定されている場合
- */
-
-if (targetPeer) {
-
-    log(
-        "接続先Peer: " +
-        targetPeer
-    );
-
-
-    peer.on(
-        "open",
-        () => {
-
-            try {
-
-                const conn =
-                    peer.connect(
-                        targetPeer,
-                        {
-                            reliable: true
-                        }
-                    );
-
-                setupDataConnection(conn);
-
-            }
-            catch (error) {
-
-                console.error(error);
-
-                log(
-                    "接続エラー"
-                );
-
-            }
+            );
 
         }
     );
 
-}
-
 
 /* =========================================================
-   初期化
+   起動
 ========================================================= */
 
+log(
+    "起動中..."
+);
+
 createPeer();
-
-setStatus("Peer接続中...");
-
-log("システム起動");
 
 </script>
 
 </body>
+
 </html>
