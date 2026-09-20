@@ -930,6 +930,10 @@ let peer = null;
 
 let connection = null;
 
+// ?target= があるページはスマートフォン側
+const isSmartphoneMode =
+    new URLSearchParams(location.search).has("target");
+
 
 /* =========================================================
    Peer作成
@@ -1538,70 +1542,83 @@ document
 
 
 /* =========================================================
-   クリック
+   マウス / タッチ
 ========================================================= */
 
-screenArea.addEventListener(
-    "click",
-    event => {
+/*
+ * スマートフォン側:
+ *   スマホ → PeerJS → PCブラウザ → Python /click
+ *
+ * PC側:
+ *   PCブラウザ自身のクリック → Python /click
+ *
+ * これまでスマホ側から 127.0.0.1:5000 に直接送っていたため、
+ * スマホ自身のlocalhostへ送信されていました。
+ */
 
-        if (
-            event.target !==
-                remoteVideo &&
-            event.target !==
-                screenArea
-        ) {
+let pointerDown = false;
+let pointerMoved = false;
+let pointerStartX = 0;
+let pointerStartY = 0;
 
-            return;
+screenArea.addEventListener("pointerdown", event => {
+    if (event.target !== remoteVideo) return;
 
-        }
+    event.preventDefault();
 
+    pointerDown = true;
+    pointerMoved = false;
+    pointerStartX = event.clientX;
+    pointerStartY = event.clientY;
 
-        sendScreenCoordinate(
-            event.clientX,
-            event.clientY
-        );
+    try {
+        remoteVideo.setPointerCapture(event.pointerId);
+    } catch (_) {}
+}, { passive: false });
 
+screenArea.addEventListener("pointermove", event => {
+    if (!pointerDown) return;
+    if (event.target !== remoteVideo && !remoteVideo.hasPointerCapture?.(event.pointerId)) return;
+
+    event.preventDefault();
+
+    const dx = event.clientX - pointerStartX;
+    const dy = event.clientY - pointerStartY;
+
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        pointerMoved = true;
     }
-);
+}, { passive: false });
 
+screenArea.addEventListener("pointerup", event => {
+    if (!pointerDown) return;
 
-/* =========================================================
-   タッチ
-========================================================= */
+    event.preventDefault();
+    pointerDown = false;
 
-screenArea.addEventListener(
-    "touchstart",
-    event => {
+    try {
+        remoteVideo.releasePointerCapture(event.pointerId);
+    } catch (_) {}
 
-        if (
-            !event.touches.length
-        ) {
+    // ドラッグ中はクリックしない
+    if (pointerMoved) return;
 
-            return;
+    sendScreenCoordinate(
+        event.clientX,
+        event.clientY
+    );
+}, { passive: false });
 
-        }
-
-
-        const touch =
-            event.touches[0];
-
-
-        sendScreenCoordinate(
-            touch.clientX,
-            touch.clientY
-        );
-
-    },
-    {
-        passive: true
-    }
-);
+screenArea.addEventListener("pointercancel", event => {
+    pointerDown = false;
+    pointerMoved = false;
+}, { passive: false });
 
 
 /* =========================================================
    座標変換
 ========================================================= */
+
 
 function sendScreenCoordinate(
     clientX,
@@ -1781,9 +1798,38 @@ function sendScreenCoordinate(
 
 
     /*
-     * Python
+     * スマートフォンの場合
+     *
+     * スマホの 127.0.0.1 はPCではないので、
+     * Pythonへ直接fetchしてはいけない。
+     *
+     * PeerJSでPCブラウザへ送り、
+     * PCブラウザからPythonへ送る。
      */
+    if (isSmartphoneMode) {
 
+        if (!connection || !connection.open) {
+            log("クリック送信失敗: PCとのP2P接続がありません");
+            return;
+        }
+
+        const message = {
+            type: "click",
+            x: videoX,
+            y: videoY
+        };
+
+        log(
+            `PCへクリック送信 X=${videoX} Y=${videoY}`
+        );
+
+        connection.send(message);
+        return;
+    }
+
+    /*
+     * PC自身の画面を操作している場合
+     */
     sendClickToPython(
         videoX,
         videoY
@@ -1803,7 +1849,7 @@ async function sendClickToPython(
 
     try {
 
-        await fetch(
+        const response = await fetch(
             PYTHON_SERVER +
             "/click",
             {
@@ -1827,6 +1873,12 @@ async function sendClickToPython(
                     })
 
             }
+        );
+
+        const result = await response.json();
+
+        log(
+            `Python /click: ${JSON.stringify(result)}`
         );
 
     }
