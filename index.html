@@ -1386,6 +1386,49 @@ function handleData(data) {
 
 
     /*
+     * スマホからマウス（押している間のドラッグ対応）
+     */
+
+    if (data.type === "mouse") {
+
+        const nx = Number(data.nx);
+        const ny = Number(data.ny);
+
+        if (!Number.isFinite(nx) || !Number.isFinite(ny)) {
+            log("マウス座標が不正です");
+            return;
+        }
+
+        if (data.action === "down") {
+            log(`マウスDOWN nx=${nx.toFixed(3)} ny=${ny.toFixed(3)}`);
+            sendMouseDownToPython(nx, ny);
+        } else if (data.action === "move") {
+            sendMouseMoveToPython(nx, ny);
+        } else if (data.action === "up") {
+            log(`マウスUP nx=${nx.toFixed(3)} ny=${ny.toFixed(3)}`);
+            sendMouseUpToPython(nx, ny);
+        }
+
+        return;
+    }
+
+
+    /*
+     * スマホからマウス（押している間のドラッグ）
+     */
+
+    if (data.type === "mouse") {
+        const nx = Number(data.nx);
+        const ny = Number(data.ny);
+        if (!Number.isFinite(nx) || !Number.isFinite(ny)) return;
+        if (data.action === "down") sendMouseDownToPython(nx, ny);
+        else if (data.action === "move") sendMouseMoveToPython(nx, ny);
+        else if (data.action === "up") sendMouseUpToPython(nx, ny);
+        return;
+    }
+
+
+    /*
      * スマホからキー
      */
 
