@@ -97,6 +97,10 @@ button {
     font-size: 13px;
 }
 
+#scrollBtn.active {
+    background: #ff9800;
+}
+
 #topBar button:active {
 
     transform: scale(0.95);
@@ -497,6 +501,10 @@ body.fullscreen #leftPanel {
 
     <button id="keyboardBtn">
         ⌨ キーボード
+    </button>
+
+    <button id="scrollBtn">
+        🖱️ スクロール
     </button>
 
     <button id="japaneseBtn">
@@ -1444,6 +1452,23 @@ function handleData(data) {
 
     }
 
+
+    /*
+     * スマホからスクロール
+     */
+
+    if (
+        data.type === "scroll"
+    ) {
+
+        sendScrollToPythonLocal(
+            data.amount
+        );
+
+        return;
+
+    }
+
 }
 
 
@@ -1713,6 +1738,102 @@ async function sendKeyToPython(key){
     try{const r=await fetch(PYTHON_SERVER+'/key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key})});log('Python /key: '+JSON.stringify(await r.json()));}
     catch(e){console.error(e);log('Pythonキー接続エラー');}
 }
+
+/* =========================================================
+   スクロールモード
+========================================================= */
+
+const scrollBtn =
+    document.getElementById("scrollBtn");
+
+let scrollMode = false;
+let scrollLastY = null;
+let scrollAccum = 0;
+let scrollMoveTime = 0;
+
+scrollBtn.addEventListener("click", () => {
+    scrollMode = !scrollMode;
+    scrollLastY = null;
+    scrollAccum = 0;
+    scrollBtn.classList.toggle("active", scrollMode);
+    log(scrollMode ? "スクロールモード ON" : "スクロールモード OFF");
+});
+
+function sendScrollToPython(amount) {
+    if (!connection || !connection.open) return;
+    connection.send({
+        type: "scroll",
+        amount: Math.round(amount)
+    });
+}
+
+async function sendScrollToPythonLocal(amount) {
+    try {
+        await fetch(
+            PYTHON_SERVER + "/scroll",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    amount: Math.round(amount)
+                })
+            }
+        );
+    } catch (error) {
+        console.error(error);
+        log("Pythonスクロール接続エラー");
+    }
+}
+
+function handleScrollPointerMove(clientY) {
+    if (!scrollMode || scrollLastY === null) {
+        scrollLastY = clientY;
+        return;
+    }
+
+    const dy = clientY - scrollLastY;
+    scrollLastY = clientY;
+
+    // 指を上へ動かす → 上へスクロール、下へ → 下へスクロール
+    scrollAccum += -dy * 0.7;
+
+    const amount = Math.trunc(scrollAccum);
+    if (amount !== 0) {
+        scrollAccum -= amount;
+        sendScrollToPython(amount);
+    }
+}
+
+function resetScrollPointer() {
+    scrollLastY = null;
+    scrollAccum = 0;
+}
+
+remoteVideo.addEventListener("pointerdown", event => {
+    if (!scrollMode) return;
+    event.preventDefault();
+    remoteVideo.setPointerCapture?.(event.pointerId);
+    scrollLastY = event.clientY;
+});
+
+remoteVideo.addEventListener("pointermove", event => {
+    if (!scrollMode) return;
+    event.preventDefault();
+    handleScrollPointerMove(event.clientY);
+});
+
+remoteVideo.addEventListener("pointerup", event => {
+    if (!scrollMode) return;
+    event.preventDefault();
+    resetScrollPointer();
+});
+
+remoteVideo.addEventListener("pointercancel", event => {
+    if (!scrollMode) return;
+    resetScrollPointer();
+});
 
 /* =========================================================
    フルスクリーン
