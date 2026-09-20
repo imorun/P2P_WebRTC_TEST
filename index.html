@@ -101,6 +101,11 @@ button {
     background: #ff9800;
 }
 
+#scrollUpBtn:active,
+#scrollDownBtn:active {
+    background: #ff9800;
+}
+
 #topBar button:active {
 
     transform: scale(0.95);
@@ -501,6 +506,14 @@ body.fullscreen #leftPanel {
 
     <button id="keyboardBtn">
         ⌨ キーボード
+    </button>
+
+    <button id="scrollUpBtn">
+        ⬆ 上スクロール
+    </button>
+
+    <button id="scrollDownBtn">
+        ⬇ 下スクロール
     </button>
 
     <button id="scrollBtn">
@@ -1746,6 +1759,12 @@ async function sendKeyToPython(key){
 const scrollBtn =
     document.getElementById("scrollBtn");
 
+const scrollUpBtn =
+    document.getElementById("scrollUpBtn");
+
+const scrollDownBtn =
+    document.getElementById("scrollDownBtn");
+
 let scrollMode = false;
 let scrollLastY = null;
 let scrollAccum = 0;
@@ -1760,12 +1779,61 @@ scrollBtn.addEventListener("click", () => {
 });
 
 function sendScrollToPython(amount) {
-    if (!connection || !connection.open) return;
-    connection.send({
-        type: "scroll",
-        amount: Math.round(amount)
-    });
+    amount = Math.round(amount);
+
+    if (amount === 0) return;
+
+    // スマホ → PeerJS → PCブラウザ → Python
+    if (connection && connection.open) {
+        connection.send({
+            type: "scroll",
+            amount
+        });
+        return;
+    }
+
+    // PC側で直接押した場合
+    sendScrollToPythonLocal(amount);
 }
+
+// ボタン1回で一定量スクロール
+function buttonScroll(amount) {
+    sendScrollToPython(amount);
+    log(amount > 0
+        ? `上スクロール: ${amount}`
+        : `下スクロール: ${Math.abs(amount)}`
+    );
+}
+
+// 長押しでも連続スクロール
+function setupScrollButton(button, amount) {
+    let timer = null;
+
+    const start = event => {
+        event.preventDefault();
+        buttonScroll(amount);
+
+        timer = setInterval(() => {
+            buttonScroll(amount);
+        }, 180);
+    };
+
+    const stop = () => {
+        if (timer !== null) {
+            clearInterval(timer);
+            timer = null;
+        }
+    };
+
+    button.addEventListener("pointerdown", start);
+    button.addEventListener("pointerup", stop);
+    button.addEventListener("pointercancel", stop);
+    button.addEventListener("pointerleave", stop);
+}
+
+// 上下スクロールボタン
+setupScrollButton(scrollUpBtn, 5);
+setupScrollButton(scrollDownBtn, -5);
 
 async function sendScrollToPythonLocal(amount) {
     try {
