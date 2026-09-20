@@ -1361,10 +1361,24 @@ function handleData(data) {
         data.type === "click"
     ) {
 
-        sendClickToPython(
-            data.x,
-            data.y
-        );
+        // スマホからは正規化座標(0.0～1.0)を受信
+        // PC側の実画面サイズへ変換してPythonへ送る
+        if (
+            typeof data.nx === "number" &&
+            typeof data.ny === "number"
+        ) {
+            sendNormalizedClickToPython(
+                data.nx,
+                data.ny
+            );
+        }
+        else {
+            // 旧形式との互換
+            sendClickToPython(
+                data.x,
+                data.y
+            );
+        }
 
         return;
 
@@ -1557,392 +1571,105 @@ document
  */
 
 let pointerDown = false;
-let pointerMoved = false;
-let pointerStartX = 0;
-let pointerStartY = 0;
-
-screenArea.addEventListener("pointerdown", event => {
-    if (event.target !== remoteVideo) return;
-
-    event.preventDefault();
-
-    pointerDown = true;
-    pointerMoved = false;
-    pointerStartX = event.clientX;
-    pointerStartY = event.clientY;
-
-    try {
-        remoteVideo.setPointerCapture(event.pointerId);
-    } catch (_) {}
-}, { passive: false });
-
-screenArea.addEventListener("pointermove", event => {
-    if (!pointerDown) return;
-    if (event.target !== remoteVideo && !remoteVideo.hasPointerCapture?.(event.pointerId)) return;
-
-    event.preventDefault();
-
-    const dx = event.clientX - pointerStartX;
-    const dy = event.clientY - pointerStartY;
-
-    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-        pointerMoved = true;
-    }
-}, { passive: false });
-
-screenArea.addEventListener("pointerup", event => {
-    if (!pointerDown) return;
-
-    event.preventDefault();
-    pointerDown = false;
-
-    try {
-        remoteVideo.releasePointerCapture(event.pointerId);
-    } catch (_) {}
-
-    // ドラッグ中はクリックしない
-    if (pointerMoved) return;
-
-    sendScreenCoordinate(
-        event.clientX,
-        event.clientY
-    );
-}, { passive: false });
-
-screenArea.addEventListener("pointercancel", event => {
-    pointerDown = false;
-    pointerMoved = false;
-}, { passive: false });
-
-
-/* =========================================================
-   座標変換
-========================================================= */
-
-
-function sendScreenCoordinate(
-    clientX,
-    clientY
-) {
-
-    const rect =
-        remoteVideo
-            .getBoundingClientRect();
-
-
-    if (
-        clientX < rect.left ||
-        clientX > rect.right ||
-        clientY < rect.top ||
-        clientY > rect.bottom
-    ) {
-
-        return;
-
-    }
-
-
-    const videoWidth =
-        remoteVideo.videoWidth;
-
-    const videoHeight =
-        remoteVideo.videoHeight;
-
-
-    if (
-        !videoWidth ||
-        !videoHeight
-    ) {
-
-        return;
-
-    }
-
-
-    const containerWidth =
-        rect.width;
-
-    const containerHeight =
-        rect.height;
-
-
-    const videoRatio =
-        videoWidth /
-        videoHeight;
-
-    const containerRatio =
-        containerWidth /
-        containerHeight;
-
-
-    let displayWidth;
-    let displayHeight;
-
-    let offsetX;
-    let offsetY;
-
-
-    if (
-        containerRatio >
-        videoRatio
-    ) {
-
-        displayHeight =
-            containerHeight;
-
-        displayWidth =
-            displayHeight *
-            videoRatio;
-
-        offsetX =
-            (
-                containerWidth -
-                displayWidth
-            ) / 2;
-
-        offsetY = 0;
-
-    }
-    else {
-
-        displayWidth =
-            containerWidth;
-
-        displayHeight =
-            displayWidth /
-            videoRatio;
-
-        offsetX = 0;
-
-        offsetY =
-            (
-                containerHeight -
-                displayHeight
-            ) / 2;
-
-    }
-
-
-    const x =
-        clientX -
-        rect.left -
-        offsetX;
-
-    const y =
-        clientY -
-        rect.top -
-        offsetY;
-
-
-    if (
-        x < 0 ||
-        y < 0 ||
-        x > displayWidth ||
-        y > displayHeight
-    ) {
-
-        return;
-
-    }
-
-
-    const videoX =
-        Math.round(
-            x *
-            videoWidth /
-            displayWidth
-        );
-
-    const videoY =
-        Math.round(
-            y *
-            videoHeight /
-            displayHeight
-        );
-
-
-    /*
-     * 赤丸
-     */
-
-    tapPoint.style.left =
-        clientX + "px";
-
-    tapPoint.style.top =
-        clientY + "px";
-
-    tapPoint.style.display =
-        "block";
-
-
-    clearTimeout(
-        window.tapTimer
-    );
-
-
-    window.tapTimer =
-        setTimeout(
-            () => {
-
-                tapPoint.style.display =
-                    "none";
-
-            },
-            300
-        );
-
-
-    log(
-        `クリック X=${videoX} Y=${videoY}`
-    );
-
-
-    /*
-     * スマートフォンの場合
-     *
-     * スマホの 127.0.0.1 はPCではないので、
-     * Pythonへ直接fetchしてはいけない。
-     *
-     * PeerJSでPCブラウザへ送り、
-     * PCブラウザからPythonへ送る。
-     */
-    if (isSmartphoneMode) {
-
-        if (!connection || !connection.open) {
-            log("クリック送信失敗: PCとのP2P接続がありません");
-            return;
-        }
-
-        const message = {
-            type: "click",
-            x: videoX,
-            y: videoY
-        };
-
-        log(
-            `PCへクリック送信 X=${videoX} Y=${videoY}`
-        );
-
-        connection.send(message);
-        return;
-    }
-
-    /*
-     * PC自身の画面を操作している場合
-     */
-    sendClickToPython(
-        videoX,
-        videoY
-    );
-
+let lastMoveTime = 0;
+
+function getNormalizedScreenCoordinate(clientX, clientY) {
+    const rect = remoteVideo.getBoundingClientRect();
+    const vw = remoteVideo.videoWidth, vh = remoteVideo.videoHeight;
+    if (!vw || !vh || clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return null;
+    const vr = vw / vh, cr = rect.width / rect.height;
+    let dw, dh, ox, oy;
+    if (cr > vr) { dh = rect.height; dw = dh * vr; ox = (rect.width-dw)/2; oy=0; }
+    else { dw = rect.width; dh = dw / vr; ox=0; oy=(rect.height-dh)/2; }
+    const x=clientX-rect.left-ox, y=clientY-rect.top-oy;
+    if(x<0||y<0||x>dw||y>dh) return null;
+    return {nx:Math.max(0,Math.min(1,x/dw)),ny:Math.max(0,Math.min(1,y/dh))};
 }
 
-
-/* =========================================================
-   Pythonクリック
-========================================================= */
-
-async function sendClickToPython(
-    x,
-    y
-) {
-
-    try {
-
-        const response = await fetch(
-            PYTHON_SERVER +
-            "/click",
-            {
-
-                method: "POST",
-
-                headers: {
-
-                    "Content-Type":
-                        "application/json"
-
-                },
-
-                body:
-                    JSON.stringify({
-
-                        x: x,
-
-                        y: y
-
-                    })
-
-            }
-        );
-
-        const result = await response.json();
-
-        log(
-            `Python /click: ${JSON.stringify(result)}`
-        );
-
-    }
-    catch (error) {
-
-        console.error(error);
-
-        log(
-            "Python接続エラー"
-        );
-
-    }
-
+function showTapPoint(clientX, clientY, persistent=false) {
+    const r=screenArea.getBoundingClientRect();
+    tapPoint.style.left=(clientX-r.left)+'px';
+    tapPoint.style.top=(clientY-r.top)+'px';
+    tapPoint.style.display='block';
+    clearTimeout(window.tapTimer);
+    if(!persistent) window.tapTimer=setTimeout(()=>tapPoint.style.display='none',300);
 }
 
-
-/* =========================================================
-   Pythonキー
-========================================================= */
-
-async function sendKeyToPython(
-    key
-) {
-
-    log(
-        "キー: " + key
-    );
-
-
-    try {
-
-        await fetch(
-            PYTHON_SERVER +
-            "/key",
-            {
-
-                method: "POST",
-
-                headers: {
-
-                    "Content-Type":
-                        "application/json"
-
-                },
-
-                body:
-                    JSON.stringify({
-
-                        key: key
-
-                    })
-
-            }
-        );
-
+function sendMousePosition(clientX, clientY, action) {
+    const p=getNormalizedScreenCoordinate(clientX,clientY);
+    if(!p) return;
+    showTapPoint(clientX,clientY,action!=='up');
+    if(isSmartphoneMode){
+        if(!connection||!connection.open) return;
+        connection.send({type:'mouse',action,nx:p.nx,ny:p.ny});
+        return;
     }
-    catch (error) {
-
-        console.error(error);
-
-    }
-
+    if(action==='down') sendMouseDownToPython(p.nx,p.ny);
+    else if(action==='move') sendMouseMoveToPython(p.nx,p.ny);
+    else if(action==='up') sendMouseUpToPython(p.nx,p.ny);
 }
 
+screenArea.addEventListener('pointerdown',event=>{
+    if(event.target!==remoteVideo)return;
+    event.preventDefault();
+    pointerDown=true;
+    try{remoteVideo.setPointerCapture(event.pointerId);}catch(_){}
+    sendMousePosition(event.clientX,event.clientY,'down');
+},{passive:false});
+
+screenArea.addEventListener('pointermove',event=>{
+    if(!pointerDown)return;
+    if(event.target!==remoteVideo&&!remoteVideo.hasPointerCapture?.(event.pointerId))return;
+    event.preventDefault();
+    const now=performance.now();
+    if(now-lastMoveTime<16)return;
+    lastMoveTime=now;
+    sendMousePosition(event.clientX,event.clientY,'move');
+},{passive:false});
+
+screenArea.addEventListener('pointerup',event=>{
+    if(!pointerDown)return;
+    event.preventDefault();
+    pointerDown=false;
+    sendMousePosition(event.clientX,event.clientY,'up');
+    try{remoteVideo.releasePointerCapture(event.pointerId);}catch(_){}
+},{passive:false});
+
+screenArea.addEventListener('pointercancel',event=>{
+    if(!pointerDown)return;
+    pointerDown=false;
+    sendMousePosition(event.clientX,event.clientY,'up');
+},{passive:false});
+
+async function sendMouseCommandToPython(endpoint,nx,ny){
+    try{await fetch(PYTHON_SERVER+endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nx,ny})});}
+    catch(e){console.error(e);log('Pythonマウス接続エラー');}
+}
+function sendMouseDownToPython(nx,ny){return sendMouseCommandToPython('/mouse_down',nx,ny);}
+function sendMouseMoveToPython(nx,ny){return sendMouseCommandToPython('/mouse_move',nx,ny);}
+function sendMouseUpToPython(nx,ny){return sendMouseCommandToPython('/mouse_up',nx,ny);}
+
+async function sendNormalizedClickToPython(nx,ny){
+    nx=Math.max(0,Math.min(1,Number(nx))); ny=Math.max(0,Math.min(1,Number(ny)));
+    try{const r=await fetch(PYTHON_SERVER+'/click_normalized',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nx,ny})});log('Python click: '+JSON.stringify(await r.json()));}
+    catch(e){console.error(e);log('Pythonクリック接続エラー');}
+}
+
+async function sendClickToPython(x,y){
+    try{const r=await fetch(PYTHON_SERVER+'/click',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x,y})});log('Python /click: '+JSON.stringify(await r.json()));}
+    catch(e){console.error(e);log('Python接続エラー');}
+}
+
+async function sendKeyToPython(key){
+    log('キー: '+key);
+    if(isSmartphoneMode){
+        if(!connection||!connection.open){log('キー送信失敗: PCとのP2P接続がありません');return;}
+        connection.send({type:'key',key});
+        return;
+    }
+    try{const r=await fetch(PYTHON_SERVER+'/key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key})});log('Python /key: '+JSON.stringify(await r.json()));}
+    catch(e){console.error(e);log('Pythonキー接続エラー');}
+}
 
 /* =========================================================
    フルスクリーン
